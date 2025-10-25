@@ -19,3 +19,4 @@
 - Lambert solver (two positions in time -> velocity/orbit) 
 - max_displacement_angle = f(approach_velocity, body(gm, radius))
 - radius_of_influence(body(mass), distance_from_sun)
+- nearest_pass(Keplerian_orbit, Keplerian_orbit, n_orbits_search)
