@@ -17,6 +17,6 @@
 ## Algorithms
 - kepler's equation (orbit -> position as a function of time) 
 - Lambert solver (two positions in time -> velocity/orbit) 
-- max_displacement_angle = f(approach_velocity, body(gm, radius))
+- max_displacement_angle, min = f(approach_velocity, body(gm, radius, soi_radius))
 - radius_of_influence(body(mass), distance_from_sun)
 - nearest_pass(Keplerian_orbit, Keplerian_orbit, n_orbits_search)
