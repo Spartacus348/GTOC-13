@@ -3,6 +3,7 @@
 | Approach | Explanation | Pros | Cons |
 | ---- | ----- | ----- | ----- |
 | Initial parameter search | Randomly iterate initial parameter space, iterating down on good solutions | Guaranteed solution; can reduce search space to initial conditions that interact with planets; comparatively easy to calculate entire trajectory from initial conditions | hard to use solar sail; solution space chaotic at the scale of 200 years (small changes in start not guaranteed to result in small changes in results) | 
+| Map interplanetary free travel network | Create a map of transfer windows between planets, then construct trajectories from them | Reduces search field; reduces problem to node-edge search | |
 
 # Free Parameters
 - y_0, z_0, vx_0, t_0
