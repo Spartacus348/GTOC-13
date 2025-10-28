@@ -2,7 +2,7 @@
 
 | Approach | Explanation | Pros | Cons |
 | ---- | ----- | ----- | ----- |
-| Initial parameter search | Randomly iterate initial parameter space, iterating down on good solutions | Guaranteed solution; can reduce search space to initial conditions that interact with planets; comparatively easy to calculate entire trajectory from initial conditions | hard to use solar sail; solution space chaotic at the scale of 200 years (small changes in start not guaranteed to result in small changes in results) | 
+| Initial parameter search | Randomly iterate initial parameter space, iterating down on good solutions | Guaranteed solution; can reduce search space to initial conditions that interact with planets; comparatively easy to calculate entire trajectory from initial conditions | hard to use solar sail; solution space chaotic at the scale of 200 years (small changes in start not guaranteed to result in small changes in results) |
 | Map interplanetary free travel network | Create a map of transfer windows between planets, then construct trajectories from them | Reduces search field; reduces problem to node-edge search | |
 
 # Free Parameters
@@ -16,8 +16,13 @@
 - numpy: vectorized functions
 
 ## Algorithms
-- kepler's equation (orbit -> position as a function of time) 
-- Lambert solver (two positions in time -> velocity/orbit) 
+- kepler's equation (orbit -> position as a function of time)
+- Lambert solver (two positions in time -> velocity/orbit)
 - max_trajectory_displacement_angle, min = f(approach_velocity, body(gm, radius, soi_radius))
 - radius_of_influence(body(mass), distance_from_sun)
 - nearest_pass(Keplerian_orbit, Keplerian_orbit, n_orbits_to_search)
+
+# Orbital Do-Outs
+- Invalid Intitial Velocity
+- Maximal/Minimal Y & X
+- Planet hitbox size for coarse search
