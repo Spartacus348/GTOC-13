@@ -9,20 +9,28 @@ X, Y, Z, Vx, Vy, Vz, t (Cartesian vector set)
 # Planet location
 ## Fine
 t, Planet1(X, Y, Z), ... Planet9(X, Y, Z)
+
 t: int (seconds)
+
 dt = 1 day
+
 tMax = 200y = 73050d
 
 ## Coarse
 t, Planet1((X1Y1Z1), (X2Y2Z2), (X3Y3Z3)), ... Planet9((X1Y1Z1), (X2Y2Z2), (X3Y3Z3))
+
 t: int (seconds)
+
 dt = 1 day
+
 tMax = 200y = 73050d
 
 # Initial Condition Search
 ## Constants
 X = -200
+
 Vy = 0
+
 Vz = 0
 
 ## Inputs
@@ -47,6 +55,7 @@ X, Y, Z, Vx, Vy, Vz, ti
 - Encounter UNLESS dual encounter w/ yandi+another, then return second
 
 ## Search Pseudocode
+```
 For t from ti to (lesser of 70yrs and perihelion reject) in steps dt:
   find coord at t
   retval = false
@@ -56,3 +65,4 @@ For t from ti to (lesser of 70yrs and perihelion reject) in steps dt:
       if match = yandi, continue
       else break
   return retval
+```
