@@ -57,13 +57,12 @@ class __C6(NamedTuple):
 
 
 class __Classical(NamedTuple):
-    nu: float
     a: float
-    e: float
+    ecc: float
     inc: float
-    r: float
     raan: float
     argp: float
+    nu: float
 
 
 initialState = C7(x=-200, v=0, w=0)
@@ -114,7 +113,6 @@ f: list[__Classical, ...] = list()
 with open(file, newline="") as csvfile:
     reader = csv.DictReader(csvfile)
     for row in reader:
-        pprint.pp(row)
         f.append(
             __Classical(
                 nu=boinor.core.angles.D_to_nu(
@@ -123,35 +121,15 @@ with open(file, newline="") as csvfile:
                     )
                 )
                 * (180 / math.pi),
-                a=float(row["Longitude of the Ascending Node (deg)"]),
-                e=float(row["Eccentricity ()"]),
+                a=float(row["Semi-Major Axis (km)"]),
+                ecc=float(row["Eccentricity ()"]),
                 inc=float(row["Inclination (deg)"]),
-                r=(
-                    float(row["Longitude of the Ascending Node (deg)"])
-                    * (1 - (float(row["Eccentricity ()"]) ** 2))
-                )
-                / (
-                    1
-                    + (
-                        float(row["Eccentricity ()"])
-                        * math.cos(
-                            boinor.core.angles.D_to_nu(
-                                boinor.core.angles.M_to_D(
-                                    float(row["Mean Anomaly at t=0 (deg)"])
-                                    * (math.pi / 360)
-                                )
-                            )
-                            * (180 / math.pi)
-                        )
-                    )
-                ),
                 raan=float(row["Longitude of the Ascending Node (deg)"]),
                 argp=float(row["Argument of Periapsis (deg)"]),
             )
         )
 body_classics: tuple[__Classical, ...] = tuple(f)
-pprint.pp(body_classics)
-exit()
+
 
 #         # Boinor uses radians and GTOC uses degrees
 #         nu = boinor.core.angles.D_to_nu(
@@ -242,13 +220,13 @@ def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
         ),
     )
 
-    orbits: tuple[boinor.twobody.Orbit] = list()
+    orbits: list[boinor.twobody.Orbit] = list()
     for x in inputs[3]:
         orbits.append(
             boinor.twobody.Orbit.from_classical(
                 attractor=Altaira,
                 a=x.a << u.km,
-                ecc=x.e << u.one,
+                ecc=x.ecc << u.one,
                 inc=x.inc << u.deg,
                 raan=x.raan << u.deg,
                 argp=x.argp << u.deg,
@@ -258,7 +236,6 @@ def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
             )
         )
     bodycount = len(orbits)
-    pprint.pp(orbits)
     for t in range(inputs[0], inputs[1], inputs[2]):
         tmplist = [__C6(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)] * bodycount
         for i in range(bodycount):
