@@ -1,0 +1,107 @@
+//objective: given the following vars:
+float step: floating point integer determining the fraction of a year to step each timestep
+probe start: 6 pieces of data refering to the starting position and velocity of the probe
+//calculate the score of a (1) possible launch, and (optionally) print every adjustment made by the probe to a csv file
+//later, i can write the psuedocode of a bunch of goroutines firing this code for different starting conditions
+
+//golang type definition. the struct contains the types vars, then after, the types methods are defined.
+//body is any astral body.
+type Body struct {
+  //did we score this timestep? 
+  skims bool
+  //what t did this object last score at
+  scoreTime float
+  //the amount of points this object is currently worth
+  points float
+  //the amount of earth years in this body's year
+  year float
+  //the bounds of the cone of concern. only the probe will use this and it might end up as a method instead
+  cone ????
+}
+//if the probe is within 100 meters of the surface, we ball
+// i defined this as a golang type with errors but i used it in the psuedo code like a python function. my mind is an enigma wrapped in mysteries (i am lazy)
+func (b *Body) skims(other) (bool, error) {
+  if (b.position == null || other.position == null || other.radius = null) {
+  return false, new Error("L sim bozo")
+  }
+  if (b.position - other.position) < (other.radius + 100 meters) {
+    b.skims = true
+    return true, null
+  }
+}
+//calcpoints tells us whether or not this body is scoring eligible
+func (b *Body) calcPoints(t) (bool, error) {
+  //I don't remember how to calculate points
+  if (b.year/12 < t - b.scoreTime) {
+    points = b.maxPoints
+  } else {
+    //i think this is wrong
+    b.points = 0
+  }
+}
+other methods: 
+getvelocities: given t, calculates the 3 velocity numbers of the body and sets them
+in: given the bounds of the cone of concern, return true if the body is in the cone
+score: given t, calculate the friendliness score of the body
+moveTowards: given t and a target body, figure out the move needed to intersect with the other body and 1. set those velocities in the probe and the 2. print that command as a line in a csv file
+
+
+//THIS PART IS THE SIMULATION CODE
+//simulation ends when t (current time) exceeds 200
+while t <=200 {
+  //iterate time
+  t += step;
+
+  //only need to run calculations when the probe needs to make adjustments.
+  if (probe.skims(target) || target.isNull()) {
+    if (probe.skims) {
+      //add points and reset skims
+      probe.skims = false;
+      target.calcPoints(t);
+      points += target.points
+    } 
+
+    //each timestep, calculate current position of all objects  
+    for body in probe_planets_asteroids_and_comets {
+      body.velocities = body.getVelocities(t);
+      //the most psuedo of code
+      body.position = body.position * body.velocities * step;
+    }
+    
+    //TODO: here we update the cone by recalculating its bounds in some way
+    probe.newcone(t);
+    
+    //determine if each body is in the Cone Of Concern™ 
+    friendlies = [];
+    for body in planets_asteroids_and_comets {
+      if body.in(probe.cone) {
+        //calculate the friendliness of bodies in the cone
+        body.score(t);
+        friendlies.append(body); 
+      }
+    }
+  
+    //get the probe moving towards the friendliest target in the cone
+    //THOUGHT to bring up at next meeting: should we increase friendliness score for targets CLOSER to the probe? for the possibility of more hits? or even just target nearest
+    target = new Body; //null target
+    for body in friendlies {
+      if (body.score > target.score) {
+          target = body;
+      }
+    }
+    csvFile.NewLine(probe.movetowards(Target));
+  }
+}
+if (printToCSV) {
+  //chunk of golange that creates a csv file called "output.csv" populated by the [][]string "csvFile"
+  file, err := os.Create("output.csv")
+    if err != nil {
+      log.Fatalf("failed to create file: %v", err)
+    }
+  writer := csv.NewWriter(file)
+    defer writer.Flush() // Ensure all buffered data is written to the file
+    if err := writer.WriteAll(csvFile); err != nil {
+      log.Fatalf("error writing records to CSV: %v", err)
+  }
+}
+println("Score: " + points);
