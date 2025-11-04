@@ -1,30 +1,18 @@
 #!/usr/bin/env python
-import os.path
-from typing import NamedTuple
-import math
-import pprint
-import random
-import pickle
-from sys import getsizeof
-import csv
-import boinor.core.angles
-import boinor.twobody
-import boinor.bodies
-import boinor.frames
-import boinor.twobody.sampling
-import boinor.util
 from astropy import units as u
 from astropy.constants import Constant
+from typing import NamedTuple
 import astropy.time
-import astropy.coordinates
+import boinor.bodies
+import boinor.core.angles
+import boinor.twobody
+import csv
+import math
 import multiprocessing
-
-import timeit
+import os.path
+import pprint
 
 file = os.path.join("ext-resources", "gtoc13_planets.csv")
-
-step = 864
-workers = 4
 
 
 class Sun:
@@ -32,6 +20,14 @@ class Sun:
     au = 149597870.691  # km
     day = 86400  # s
     year = 365.25  # days
+
+
+start = 0
+# end = 200 * Sun.year * Sun.day
+# step = 8640
+end = 1000
+step = 1
+workers = 1
 
 
 class SailParameters:
@@ -60,6 +56,16 @@ class __C6(NamedTuple):
     w: float = math.nan
 
 
+class __Classical(NamedTuple):
+    nu: float
+    a: float
+    e: float
+    inc: float
+    r: float
+    raan: float
+    argp: float
+
+
 initialState = C7(x=-200, v=0, w=0)
 
 if not isinstance(workers, int):
@@ -71,14 +77,7 @@ if ((Sun.day * Sun.year * 200 / step) % workers) != 0:
         f"Sun.day*Sun.year/step)%workers should be 0, was {(Sun.day*Sun.year/step)%workers}"
     )
 
-worker_ranges = [(0, 0, 0)] * workers
-for i in range(workers):
-    worker_ranges[i] = (
-        int(i * Sun.day * Sun.year * 200 / workers),
-        int(((i + 1) * Sun.day * Sun.year * 200 / workers)),
-        step,
-    )
-worker_ranges[-1] = (worker_ranges[-1][0], int(worker_ranges[-1][1] + step), step)
+
 # Python range is end is non-inclusive, so we bump the end to be included
 db: dict[
     float,
@@ -102,70 +101,101 @@ db: dict[
 # time is the key
 # A tuple with __C6 of the planets follows
 
-Altaira = boinor.bodies.Body(
-    parent=None,
-    k=Constant(
-        abbrev="GM_altaira",  # abbrev
-        name="Altaira centric gravitational constant",  # name
-        value=139348062043.343e9,  # value (given by problem) (python is nice to us :))
-        unit="m3/s2",  # unit
-        uncertainty=0,  # uncertainty
-        reference="",  # reference
-        system="si",  # system
-    ),
-    name="Altaira",
-    R=Constant(
-        "R_altaira",
-        "Altaira equatorial radius",
-        6.95700e8,  # Given
-        "m",
-        0,
-        "",
-        system="si",
-    ),
-    mass=Constant(
-        "M_altaira",
-        "Solar mass",
-        139348062043.343e9 * 6.67430e-11,  # GM (Given) * Gravitational constant
-        "kg",
-        "0",
-        "",
-        system="si",
-    ),
-)
+# Altaira = boinor.bodies.Body(
+#     parent=None,
+#     k=Constant(
+#         abbrev="GM_altaira",  # abbrev
+#         name="Altaira centric gravitational constant",  # name
+#         value=139348062043.343e9,  # value (given by problem) (python is nice to us :))
+#         unit="m3/s2",  # unit
+#         uncertainty=0,  # uncertainty
+#         reference="",  # reference
+#         system="si",  # system
+#     ),
+#     name="Altaira",
+#     R=Constant(
+#         "R_altaira",
+#         "Altaira equatorial radius",
+#         6.95700e8,  # Given
+#         "m",
+#         0,
+#         "",
+#         system="si",
+#     ),
+#     mass=Constant(
+#         "M_altaira",
+#         "Solar mass",
+#         139348062043.343e9 * 6.67430e-11,  # GM (Given) * Gravitational constant
+#         "kg",
+#         "0",
+#         "",
+#         system="si",
+#     ),
+# )
 
-orbits: list[boinor.twobody.Orbit] = list()
+f: list[__Classical, ...] = list()
 with open(file, newline="") as csvfile:
-    reader = csv.reader(csvfile)
+    reader = csv.DictReader(csvfile)
     for row in reader:
-        try:
-            int(row[0])
-        except:
-            continue  # The first row is headers
-
-        # Boinor uses radians and GTOC uses degrees
-        nu = boinor.core.angles.D_to_nu(
-            boinor.core.angles.M_to_D(float(row[9]) * (math.pi / 360))
-        ) * (180 / math.pi)
-        a = float(row[4])
-        e = float(row[5])
-        inc = float(row[6])
-        r = (a * (1 - (e**2))) / (1 + (e * math.cos(nu)))
-        raan = float(row[7])
-        argp = float(row[8])
-        orbits.append(
-            boinor.twobody.Orbit.from_classical(
-                attractor=Altaira,
-                a=a << u.km,
-                ecc=e << u.one,
-                inc=inc << u.deg,
-                raan=raan << u.deg,
-                argp=argp << u.deg,
-                nu=nu << u.deg,
-                epoch=astropy.time.Time("0", format="unix"),
-                # plane=boinor.frames.Planes.BODY_FIXED, # Custom bodies not implemented. IDK if this is a problem.
+        f.append(
+            __Classical(
+                nu=boinor.core.angles.D_to_nu(
+                    boinor.core.angles.M_to_D(
+                        float(row["Mean Anomaly at t=0 (deg)"]) * (math.pi / 360)
+                    )
+                )
+                * (180 / math.pi),
+                a=float(row["Longitude of the Ascending Node (deg)"]),
+                e=float(row["Eccentricity ()"]),
+                inc=float(row["Inclination (deg)"]),
+                r=(
+                    float(row["Longitude of the Ascending Node (deg)"])
+                    * (1 - (float(row["Eccentricity ()"]) ** 2))
+                )
+                / (
+                    1
+                    + (
+                        float(row["Eccentricity ()"])
+                        * math.cos(
+                            boinor.core.angles.D_to_nu(
+                                boinor.core.angles.M_to_D(
+                                    float(row["Mean Anomaly at t=0 (deg)"])
+                                    * (math.pi / 360)
+                                )
+                            )
+                            * (180 / math.pi)
+                        )
+                    )
+                ),
+                raan=float(row["Longitude of the Ascending Node (deg)"]),
+                argp=float(row["Argument of Periapsis (deg)"]),
             )
         )
+body_classics: tuple[__Classical, ...] = tuple(f)
+
+#         # Boinor uses radians and GTOC uses degrees
+#         nu = boinor.core.angles.D_to_nu(
+#             boinor.core.angles.M_to_D(float(row[9]) * (math.pi / 360))
+#         ) * (180 / math.pi)
+#         a = float(row[4])
+#         e = float(row[5])
+#         inc = float(row[6])
+#         r = (a * (1 - (e**2))) / (1 + (e * math.cos(nu)))
+#         raan = float(row[7])
+#         argp = float(row[8])
+#         orbits.append(
+#             boinor.twobody.Orbit.from_classical(
+#                 attractor=Altaira,
+#                 a=a << u.km,
+#                 ecc=e << u.one,
+#                 inc=inc << u.deg,
+#                 raan=raan << u.deg,
+#                 argp=argp << u.deg,
+#                 nu=nu << u.deg,
+#                 epoch=astropy.time.Time("0", format="unix"),
+#                 # plane=boinor.frames.Planes.BODY_FIXED, # Custom bodies not implemented. IDK if this is a problem.
+#             )
+#         )
 # ephem = orbits[0].to_ephem(
 #     strategy=boinor.twobody.sampling.EpochsArray(
 #         epochs=boinor.util.time_range(
@@ -176,38 +206,91 @@ with open(file, newline="") as csvfile:
 # )
 
 
-def procjob(
-    conditions: tuple[int, int, int], orbits: list[boinor.twobody.Orbit]
-) -> None:
+worker_jobs = [(0, 0, 0, body_classics)] * workers
+for i in range(workers):
+    worker_jobs[i] = (
+        int(i * start / workers),
+        int(((i + 1) * end / workers)),
+        step,
+        body_classics,
+    )
+worker_jobs[-1] = (
+    worker_jobs[-1][0],
+    int(worker_jobs[-1][1] + step),
+    step,
+    body_classics,
+)
+
+
+def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
+    int,
+    tuple[__C6, ...],
+]:
     db: dict[
         int,
-        tuple[
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-            __C6,
-        ],
+        tuple[__C6, ...],
     ] = dict()
+    Altaira = boinor.bodies.Body(
+        parent=None,
+        k=Constant(
+            abbrev="GM_altaira",  # abbrev
+            name="Altaira centric gravitational constant",  # name
+            value=139348062043.343e9,  # value (given by problem) (python is nice to us :))
+            unit="m3/s2",  # unit
+            uncertainty=0,  # uncertainty
+            reference="",  # reference
+            system="si",  # system
+        ),
+        name="Altaira",
+        R=Constant(
+            "R_altaira",
+            "Altaira equatorial radius",
+            6.95700e8,  # Given
+            "m",
+            0,
+            "",
+            system="si",
+        ),
+        mass=Constant(
+            "M_altaira",
+            "Solar mass",
+            139348062043.343e9 * 6.67430e-11,  # GM (Given) * Gravitational constant
+            "kg",
+            "0",
+            "",
+            system="si",
+        ),
+    )
+
+    orbits: tuple[boinor.twobody.Orbit] = list()
+    for x in inputs[3]:
+        orbits.append(
+            boinor.twobody.Orbit.from_classical(
+                attractor=Altaira,
+                a=x.a << u.km,
+                ecc=x.e << u.one,
+                inc=x.inc << u.deg,
+                raan=x.raan << u.deg,
+                argp=x.argp << u.deg,
+                nu=x.nu << u.deg,
+                epoch=astropy.time.Time("0", format="unix"),
+                # plane=boinor.frames.Planes.BODY_FIXED, # Custom bodies not implemented. IDK if this is a problem.
+            )
+        )
     bodycount = len(orbits)
-    for t in range(*conditions):  # SPLAT!
-        tmplist = [(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)] * bodycount
+    pprint.pp(orbits)
+    for t in range(inputs[0], inputs[1], inputs[2]):
+        tmplist = [__C6(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)] * bodycount
         for i in range(bodycount):
             r, v = orbits[i].propagate(t << u.s).rv()
-            tmplist[i] = (*r, *v)
+            tmplist[i] = __C6(*r, *v)
         db[t] = tuple(tmplist)
+    return db
 
 
-print(timeit.timeit("procjob((0, 10, 1), orbits)", globals=globals(), number=100))
+if __name__ == "__main__":
+    with multiprocessing.Pool(workers) as p:
+        a = p.map(procjob, worker_jobs)
 
 # Demo data to test object size. Obj is 2621528 bytes.
 #
