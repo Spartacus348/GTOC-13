@@ -10,7 +10,7 @@ import csv
 import math
 import multiprocessing
 import os.path
-import pprint
+import pickle
 
 file = os.path.join("ext-resources", "gtoc13_planets.csv")
 
@@ -23,11 +23,9 @@ class Sun:
 
 
 start = 0
-# end = 200 * Sun.year * Sun.day
-# step = 8640
-end = 1000
-step = 1
-workers = 1
+end = 200 * Sun.year * Sun.day
+step = Sun.day / 2  # half day interval
+workers = 20
 
 
 class SailParameters:
@@ -71,11 +69,11 @@ if not isinstance(workers, int):
     raise ValueError("Number of workers should be an integer")
 
 # Validate worker/step distrobution
-if ((Sun.day * Sun.year * 200 / step) % workers) != 0:
+if (((start - end) / step) % workers) != 0:
     raise ValueError(
-        f"Sun.day*Sun.year/step)%workers should be 0, was {(Sun.day*Sun.year/step)%workers}"
+        f"(((start - end) / step) % workers) should be 0, was {(((start - end) / step) % workers)}"
     )
-
+step = int(step)
 
 # Altaira = boinor.bodies.Body(
 #     parent=None,
@@ -109,7 +107,7 @@ if ((Sun.day * Sun.year * 200 / step) % workers) != 0:
 #     ),
 # )
 
-f: list[__Classical, ...] = list()
+f: list[__Classical] = list()
 with open(file, newline="") as csvfile:
     reader = csv.DictReader(csvfile)
     for row in reader:
@@ -184,10 +182,6 @@ def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
     int,
     tuple[__C6, ...],
 ]:
-    db: dict[
-        int,
-        tuple[__C6, ...],
-    ] = dict()
     Altaira = boinor.bodies.Body(
         parent=None,
         k=Constant(
@@ -235,10 +229,13 @@ def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
                 # plane=boinor.frames.Planes.BODY_FIXED, # Custom bodies not implemented. IDK if this is a problem.
             )
         )
-    bodycount = len(orbits)
+    db: dict[
+        int,
+        tuple[__C6, ...],
+    ] = dict()
     for t in range(inputs[0], inputs[1], inputs[2]):
-        tmplist = [__C6(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)] * bodycount
-        for i in range(bodycount):
+        tmplist = [__C6(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)] * len(orbits)
+        for i in range(len(orbits)):
             r, v = orbits[i].propagate(t << u.s).rv()
             tmplist[i] = __C6(*r, *v)
         db[t] = tuple(tmplist)
@@ -248,3 +245,8 @@ def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
 if __name__ == "__main__":
     with multiprocessing.Pool(workers) as p:
         a = p.map(procjob, worker_jobs)
+    ret: dict[int, tuple[__C6, ...]] = dict()
+    for x in a:
+        ret.update(x)
+    with open("out.pickle", "wb") as file:
+        pickle.dump(ret, file)
