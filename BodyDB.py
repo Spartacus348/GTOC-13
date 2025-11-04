@@ -78,29 +78,6 @@ if ((Sun.day * Sun.year * 200 / step) % workers) != 0:
     )
 
 
-# Python range is end is non-inclusive, so we bump the end to be included
-db: dict[
-    float,
-    tuple[
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-        __C6,
-    ],
-] = dict()
-# time is the key
-# A tuple with __C6 of the planets follows
-
 # Altaira = boinor.bodies.Body(
 #     parent=None,
 #     k=Constant(
@@ -137,6 +114,7 @@ f: list[__Classical, ...] = list()
 with open(file, newline="") as csvfile:
     reader = csv.DictReader(csvfile)
     for row in reader:
+        pprint.pp(row)
         f.append(
             __Classical(
                 nu=boinor.core.angles.D_to_nu(
@@ -172,6 +150,8 @@ with open(file, newline="") as csvfile:
             )
         )
 body_classics: tuple[__Classical, ...] = tuple(f)
+pprint.pp(body_classics)
+exit()
 
 #         # Boinor uses radians and GTOC uses degrees
 #         nu = boinor.core.angles.D_to_nu(
@@ -291,133 +271,3 @@ def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
 if __name__ == "__main__":
     with multiprocessing.Pool(workers) as p:
         a = p.map(procjob, worker_jobs)
-
-# Demo data to test object size. Obj is 2621528 bytes.
-#
-# for t in range(0, int(200 * 365.25 * 86400) + 86400, 864):
-#     if t % (86400 * 365.25) == 0:
-#         print((t / (86400 * 365.25)) / 2)
-#     db[t] = (
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#         __C6(
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#             random.uniform(-200, 200),
-#         ),
-#     )
-
-
-# def get_C7_from_orbit(t: float, orbitparms: None) -> C7:
-#     pass
-
-
-# print(getsizeof(db))
-
-# with open("out.pickle", "wb") as file:
-#     pickle.dump(db, file)
