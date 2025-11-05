@@ -1,6 +1,6 @@
 //objective: given the following vars:
 float step: floating point integer determining the fraction of a year to step each timestep
-probe start: 6 pieces of data refering to the starting position and velocity of the probe
+probe Body: 6 pieces of data refering to the starting position and velocity of the probe
 //calculate the score of a (1) possible launch, and (optionally) print every adjustment made by the probe to a csv file
 //later, i can write the psuedocode of a bunch of goroutines firing this code for different starting conditions
 
@@ -44,7 +44,7 @@ getvelocities: given t, calculates the 3 velocity numbers of the body and sets t
 in: given the bounds of the cone of concern, return true if the body is in the cone
 score: given t, calculate the friendliness score of the body
 moveTowards: given t and a target body, figure out the move needed to intersect with the other body and 1. set those velocities in the probe and the 2. print that command as a line in a csv file
-
+newCone: given t, calculate the bounds of the possible traversal cone at the time
 
 //THIS PART IS THE SIMULATION CODE
 //simulation ends when t (current time) exceeds 200
