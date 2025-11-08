@@ -8,6 +8,7 @@ import boinor.core.angles
 import boinor.twobody
 import csv
 import math
+import math
 import multiprocessing
 import os.path
 import pickle
@@ -24,7 +25,7 @@ class Sun:
 
 start = 0
 end = 200 * Sun.year * Sun.day
-step = Sun.day / 2  # half day interval
+step = Sun.day
 workers = 20
 
 
@@ -68,50 +69,19 @@ initialState = C7(x=-200, v=0, w=0)
 if not isinstance(workers, int):
     raise ValueError("Number of workers should be an integer")
 
-# Validate worker/step distrobution
-if (((start - end) / step) % workers) != 0:
+if ((end - start) % step) != 0:
     raise ValueError(
-        f"(((start - end) / step) % workers) should be 0, was {(((start - end) / step) % workers)}"
+        f"Step size should fully encompass interval from start to end. Remainder: {((start - end) % step)}"
     )
+
 step = int(step)
 
-# Altaira = boinor.bodies.Body(
-#     parent=None,
-#     k=Constant(
-#         abbrev="GM_altaira",  # abbrev
-#         name="Altaira centric gravitational constant",  # name
-#         value=139348062043.343e9,  # value (given by problem) (python is nice to us :))
-#         unit="m3/s2",  # unit
-#         uncertainty=0,  # uncertainty
-#         reference="",  # reference
-#         system="si",  # system
-#     ),
-#     name="Altaira",
-#     R=Constant(
-#         "R_altaira",
-#         "Altaira equatorial radius",
-#         6.95700e8,  # Given
-#         "m",
-#         0,
-#         "",
-#         system="si",
-#     ),
-#     mass=Constant(
-#         "M_altaira",
-#         "Solar mass",
-#         139348062043.343e9 * 6.67430e-11,  # GM (Given) * Gravitational constant
-#         "kg",
-#         "0",
-#         "",
-#         system="si",
-#     ),
-# )
 
-f: list[__Classical] = list()
+body_classics = list()
 with open(file, newline="") as csvfile:
     reader = csv.DictReader(csvfile)
     for row in reader:
-        f.append(
+        body_classics.append(
             __Classical(
                 nu=boinor.core.angles.D_to_nu(
                     boinor.core.angles.M_to_D(
@@ -126,53 +96,19 @@ with open(file, newline="") as csvfile:
                 argp=float(row["Argument of Periapsis (deg)"]),
             )
         )
-body_classics: tuple[__Classical, ...] = tuple(f)
-
-
-#         # Boinor uses radians and GTOC uses degrees
-#         nu = boinor.core.angles.D_to_nu(
-#             boinor.core.angles.M_to_D(float(row[9]) * (math.pi / 360))
-#         ) * (180 / math.pi)
-#         a = float(row[4])
-#         e = float(row[5])
-#         inc = float(row[6])
-#         r = (a * (1 - (e**2))) / (1 + (e * math.cos(nu)))
-#         raan = float(row[7])
-#         argp = float(row[8])
-#         orbits.append(
-#             boinor.twobody.Orbit.from_classical(
-#                 attractor=Altaira,
-#                 a=a << u.km,
-#                 ecc=e << u.one,
-#                 inc=inc << u.deg,
-#                 raan=raan << u.deg,
-#                 argp=argp << u.deg,
-#                 nu=nu << u.deg,
-#                 epoch=astropy.time.Time("0", format="unix"),
-#                 # plane=boinor.frames.Planes.BODY_FIXED, # Custom bodies not implemented. IDK if this is a problem.
-#             )
-#         )
-# ephem = orbits[0].to_ephem(
-#     strategy=boinor.twobody.sampling.EpochsArray(
-#         epochs=boinor.util.time_range(
-#             astropy.time.Time("0", format="unix"),
-#             end=astropy.time.Time(f"{200 * 365.25 * 86400}", format="unix"),
-#         )
-#     )
-# )
-
+body_classics: tuple[__Classical, ...] = tuple(body_classics)
 
 worker_jobs = [(0, 0, 0, body_classics)] * workers
 for i in range(workers):
     worker_jobs[i] = (
-        int(i * start / workers),
-        int(((i + 1) * end / workers)),
+        int(start + step * math.floor((end - start) / (workers * step)) * i),
+        int(start + step * math.floor((end - start) / (workers * step)) * (i + 1)),
         step,
         body_classics,
     )
 worker_jobs[-1] = (
     worker_jobs[-1][0],
-    int(worker_jobs[-1][1] + step),
+    int(end + step),
     step,
     body_classics,
 )
@@ -237,7 +173,9 @@ def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
         tmplist = [__C6(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)] * len(orbits)
         for i in range(len(orbits)):
             r, v = orbits[i].propagate(t << u.s).rv()
-            tmplist[i] = __C6(*r, *v)
+            tmplist[i] = __C6(
+                r[0].value, r[1].value, r[2].value, v[0].value, v[1].value, v[2].value
+            )
         db[t] = tuple(tmplist)
     return db
 
