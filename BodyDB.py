@@ -78,7 +78,7 @@ step = int(step)
 
 
 body_classics = list()
-with open(file, newline="") as csvfile:
+with open(file, newline="", encoding="iso-8859-1") as csvfile:
     reader = csv.DictReader(csvfile)
     for row in reader:
         body_classics.append(
