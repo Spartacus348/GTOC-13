@@ -1,7 +1,9 @@
 #!/usr/bin/env python
+print("Importing libraries. This may take a bit...")
 from astropy import units as u
 from astropy.constants import Constant
 from typing import NamedTuple
+from multiprocessing import SimpleQueue
 import astropy.time
 import boinor.bodies
 import boinor.core.angles
@@ -12,8 +14,10 @@ import math
 import multiprocessing
 import os.path
 import pickle
+import pprint
+from typing import Any
 
-file = os.path.join("ext-resources", "gtoc13_planets.csv")
+print("Done importing!")
 
 
 class Sun:
@@ -21,12 +25,6 @@ class Sun:
     au = 149597870.691  # km
     day = 86400  # s
     year = 365.25  # days
-
-
-start = 0
-end = 200 * Sun.year * Sun.day
-step = Sun.day
-workers = 20
 
 
 class SailParameters:
@@ -64,60 +62,7 @@ class __Classical(NamedTuple):
     nu: float
 
 
-initialState = C7(x=-200, v=0, w=0)
-
-if not isinstance(workers, int):
-    raise ValueError("Number of workers should be an integer")
-
-if ((end - start) % step) != 0:
-    raise ValueError(
-        f"Step size should fully encompass interval from start to end. Remainder: {((start - end) % step)}"
-    )
-
-step = int(step)
-
-
-body_classics = list()
-with open(file, newline="", encoding="iso-8859-1") as csvfile:
-    reader = csv.DictReader(csvfile)
-    for row in reader:
-        body_classics.append(
-            __Classical(
-                nu=boinor.core.angles.D_to_nu(
-                    boinor.core.angles.M_to_D(
-                        float(row["Mean Anomaly at t=0 (deg)"]) * (math.pi / 360)
-                    )
-                )
-                * (180 / math.pi),
-                a=float(row["Semi-Major Axis (km)"]),
-                ecc=float(row["Eccentricity ()"]),
-                inc=float(row["Inclination (deg)"]),
-                raan=float(row["Longitude of the Ascending Node (deg)"]),
-                argp=float(row["Argument of Periapsis (deg)"]),
-            )
-        )
-body_classics: tuple[__Classical, ...] = tuple(body_classics)
-
-worker_jobs = [(0, 0, 0, body_classics)] * workers
-for i in range(workers):
-    worker_jobs[i] = (
-        int(start + step * math.floor((end - start) / (workers * step)) * i),
-        int(start + step * math.floor((end - start) / (workers * step)) * (i + 1)),
-        step,
-        body_classics,
-    )
-worker_jobs[-1] = (
-    worker_jobs[-1][0],
-    int(end + step),
-    step,
-    body_classics,
-)
-
-
-def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
-    int,
-    tuple[__C6, ...],
-]:
+def procjob(inputs) -> None:
     Altaira = boinor.bodies.Body(
         parent=None,
         k=Constant(
@@ -165,26 +110,91 @@ def procjob(inputs: tuple[int, int, int, tuple[__Classical, ...]]) -> dict[
                 # plane=boinor.frames.Planes.BODY_FIXED, # Custom bodies not implemented. IDK if this is a problem.
             )
         )
-    db: dict[
-        int,
-        tuple[__C6, ...],
-    ] = dict()
     for t in range(inputs[0], inputs[1], inputs[2]):
-        tmplist = [__C6(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)] * len(orbits)
+        tmplist = [
+            (
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            )
+        ] * len(orbits)
         for i in range(len(orbits)):
             r, v = orbits[i].propagate(t << u.s).rv()
-            tmplist[i] = __C6(
-                r[0].value, r[1].value, r[2].value, v[0].value, v[1].value, v[2].value
+            tmplist[i] = (
+                r[0].value,
+                r[1].value,
+                r[2].value,
+                v[0].value,
+                v[1].value,
+                v[2].value,
             )
-        db[t] = tuple(tmplist)
-    return db
+        inputs[4].put((t, tuple(tmplist)))
+    return None
 
 
 if __name__ == "__main__":
-    with multiprocessing.Pool(workers) as p:
-        a = p.map(procjob, worker_jobs)
-    ret: dict[int, tuple[__C6, ...]] = dict()
-    for x in a:
-        ret.update(x)
+    start = 0
+    end = 200 * Sun.year * Sun.day
+    step = Sun.day
+    workers = 20
+
+    if not isinstance(workers, int):
+        raise ValueError("Number of workers should be an integer")
+
+    if ((end - start) % step) != 0:
+        raise ValueError(
+            f"Step size should fully encompass interval from start to end. Remainder: {((start - end) % step)}"
+        )
+
+    step = int(step)
+
+    file = os.path.join("ext-resources", "gtoc13_planets.csv")
+    body_classics = list()
+    with open(file, newline="", encoding="iso-8859-1") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            body_classics.append(
+                __Classical(
+                    nu=boinor.core.angles.D_to_nu(
+                        boinor.core.angles.M_to_D(
+                            float(row["Mean Anomaly at t=0 (deg)"]) * (math.pi / 360)
+                        )
+                    )
+                    * (180 / math.pi),
+                    a=float(row["Semi-Major Axis (km)"]),
+                    ecc=float(row["Eccentricity ()"]),
+                    inc=float(row["Inclination (deg)"]),
+                    raan=float(row["Longitude of the Ascending Node (deg)"]),
+                    argp=float(row["Argument of Periapsis (deg)"]),
+                )
+            )
+    body_classics: tuple[__Classical, ...] = tuple(body_classics)
+
+    queue = multiprocessing.SimpleQueue()
+    worker_jobs = [(0, 0, 0, body_classics, queue)] * workers
+    for i in range(workers):
+        worker_jobs[i] = (
+            int(start + step * math.floor((end - start) / (workers * step)) * i),
+            int(start + step * math.floor((end - start) / (workers * step)) * (i + 1)),
+            step,
+            body_classics,
+            queue,
+        )
+    worker_jobs[-1] = (worker_jobs[-1][0], int(end + step), step, body_classics, queue)
+    multiprocessing.freeze_support()
+    proclist: list[multiprocessing.Process] = list()
+    for i in worker_jobs:
+        proclist.append(multiprocessing.Process(target=procjob, args=(i,)))
+    for i in proclist:
+        i.start()
+    ret: dict[int, tuple[tuple[Any], ...]] = dict()
+    for i in range(int((end - start) / step) + 1):
+        item = queue.get()
+        ret[item[0]] = item[1]
+    for i in ret.keys():
+        print(i)
     with open("out.pickle", "wb") as file:
         pickle.dump(ret, file)
