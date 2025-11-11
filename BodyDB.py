@@ -2,8 +2,8 @@
 print("Importing libraries. This may take a bit...")
 from astropy import units as u
 from astropy.constants import Constant
+from typing import Any
 from typing import NamedTuple
-from multiprocessing import SimpleQueue
 import astropy.time
 import boinor.bodies
 import boinor.core.angles
@@ -124,12 +124,12 @@ def procjob(inputs) -> None:
         for i in range(len(orbits)):
             r, v = orbits[i].propagate(t << u.s).rv()
             tmplist[i] = (
-                r[0].value,
-                r[1].value,
-                r[2].value,
-                v[0].value,
-                v[1].value,
-                v[2].value,
+                float(r[0].value),
+                float(r[1].value),
+                float(r[2].value),
+                float(v[0].value),
+                float(v[1].value),
+                float(v[2].value),
             )
         inputs[4].put((t, tuple(tmplist)))
     return None
@@ -194,7 +194,5 @@ if __name__ == "__main__":
     for i in range(int((end - start) / step) + 1):
         item = queue.get()
         ret[item[0]] = item[1]
-    for i in ret.keys():
-        print(i)
-    with open("out.pickle", "wb") as file:
+    with open("BodyDB.pickle", "wb") as file:
         pickle.dump(ret, file)
