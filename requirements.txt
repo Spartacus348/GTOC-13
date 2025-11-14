@@ -1,1 +1,4 @@
+astropy
 boinor
+numpy
+scipy
