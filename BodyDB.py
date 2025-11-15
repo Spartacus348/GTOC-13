@@ -162,10 +162,12 @@ if __name__ == "__main__":
             mea = np.deg2rad(float(row["Mean Anomaly at t=0 (deg)"]))
             if ecc > 1:
                 nu = boinor.core.angles.F_to_nu(
-                    boinor.core.angles.M_to_F(mea, ecc))
+                    boinor.core.angles.M_to_F(mea, ecc),
+                ecc)
             elif ecc < 1:
                 nu = boinor.core.angles.E_to_nu(
-                    boinor.core.angles.M_to_E(mea,ecc))
+                    boinor.core.angles.M_to_E(mea,ecc),
+                ecc)
             else:
                 nu = boinor.core.angles.D_to_nu(
                     boinor.core.angles.M_to_D(mea))
