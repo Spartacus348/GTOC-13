@@ -159,7 +159,7 @@ if __name__ == "__main__":
         reader = csv.DictReader(csvfile)
         for row in reader:
             ecc = float(row["Eccentricity ()"])
-            mea = np.deg_to_rad(float(row["Mean Anomaly at t=0 (deg)"]))
+            mea = np.deg2rad(float(row["Mean Anomaly at t=0 (deg)"]))
             if ecc > 1:
                 nu = boinor.core.angles.F_to_nu(
                     boinor.core.angles.M_to_F(mea, ecc))
@@ -172,7 +172,7 @@ if __name__ == "__main__":
 
             body_classics.append(
                 __Classical(
-                    nu=np.deg_to_rad(nu),
+                    nu=np.rad2deg(nu),
                     a=float(row["Semi-Major Axis (km)"]),
                     ecc=float(row["Eccentricity ()"]),
                     inc=float(row["Inclination (deg)"]),
