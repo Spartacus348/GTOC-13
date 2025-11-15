@@ -22,13 +22,23 @@ class Message(NamedTuple):
     func: Callable[[Self], Self]
 
 
-def __noop(Message) -> Message:
+def noop(Message) -> Message:
+    """
+    NO-OP function to satisfy Message definition when Message.Next is empty.
+    """
     raise Exception("THIS FUNCTION SHOULD NOT BE CALLED.")
-    return Message(past=list(), txt="END", next=list(), func=__noop)
+    return Message(past=list(), txt="END", next=list(), func=noop)
+
+
+def empty_message() -> Message:
+    """
+    Return a message with empty past and next, no txt, and no-op func.
+    """
+    return Message(past=list(), txt="", next=list(), func=noop)
 
 
 def end_runner() -> Message:
-    return Message(past=list(), txt="END", next=list(), func=__noop)
+    return Message(past=list(), txt="END", next=list(), func=noop)
 
 
 def fake_job(message: Message):
