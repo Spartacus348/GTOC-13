@@ -13,10 +13,12 @@ from boinor.twobody import Orbit
 
 import initial_conditions
 import runner
-from constants import C7, Altaira, Sun, UnnamedTuple
+from constants import C7, Altaira, Sun
 
 with open("BodyDB.pickle", "rb") as file:
-    db: dict[int, tuple[UnnamedTuple]] = pickle.load(file)
+    db: dict[int, tuple[tuple[float, float, float, float, float, float], ...]] = (
+        pickle.load(file)
+    )
 
 
 radiusList: list[float] = list()
@@ -31,17 +33,17 @@ with open(
 
 
 def effect(msg: runner.Message):
-    if msg.txt != "" or msg.txt != "ERR":
-        past = msg.past[0]
+    if msg.txt not in ("", "ERR"):
+        past = msg.past[0][0]
         print(msg, file=stderr)
         print(
-            f"{float(past[0])},{float(past[1])},{float(past[2])},{float(past[3])},{float(past[4])},{float(past[5])},{float(past[6])}"
+            f"{float(past[0])},{float(past[1])},{float(past[2])},{float(past[3])},{float(past[4])},{float(past[5])},{float(past[6])},{int(msg.past[0][1])}"
         )
     return get_job()
 
 
 def job(message: runner.Message):
-    current = message.next.pop()
+    current = message.next.pop()[0]
     r = [current[1], current[2], current[3]] << u.km
     v = [current[4], current[5], current[6]] << u.km / u.s
     t = current[0] << u.s
@@ -56,7 +58,7 @@ def job(message: runner.Message):
 
             inside = np.sum((probe - q) ** 2) <= R**2
             if inside:
-                intersect = True
+                intersect = p
                 break
         if intersect:
             break
@@ -68,11 +70,11 @@ def job(message: runner.Message):
         r, v = orb.rv()
 
     txt = "INTERSECT" if intersect else txt
-    message.past.append(current)
+    message.past.append((current, intersect if intersect else None))
     return runner.Message(
         past=message.past,
         txt=txt,
-        next=list(((0, 0, 0, 0, 0, 0, 0),)),
+        next=runner.empty_nexts(),
         func=effect,
     )
 
@@ -94,7 +96,7 @@ def get_job() -> runner.Message:
     return runner.Message(
         past=list(),
         txt="",
-        next=list(
+        next=[
             (
                 C7(
                     t=state_start[0],
@@ -105,8 +107,9 @@ def get_job() -> runner.Message:
                     v=0,
                     w=0,
                 ),
+                None,
             ),
-        ),
+        ],
         func=job,
     )
 
@@ -118,5 +121,5 @@ if __name__ == "__main__":
     workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
     for i in range(workers):
         in_queue.put(get_job())
-    print("t,x,y,z,u,v,w")
+    print("t,x,y,z,u,v,w,planetID")
     runner.runner(in_queue, out_queue)
