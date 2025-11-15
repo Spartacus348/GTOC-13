@@ -77,7 +77,7 @@ def search_and_collide(task: Message) -> Message:
         if (time-orbit.epoch)/(Sun.day * Sun.year) > PROP_MAX_YR:
             return runner.empty_message()
 
-        this_orbit = orbit.propagate(time)
+        this_orbit = orbit.propagate(time - this_orbit.epoch)
         # end if we fly within 0.05 AU
         if np.linalg.norm(np.array(this_orbit.r))/Sun.au < MIN_SUN_SKIM_AU:
             return runner.empty_message()
