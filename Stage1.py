@@ -13,9 +13,8 @@ import numpy as np
 from astropy import units as u
 from boinor.twobody import Orbit
 
-from constants import Altaira, Sun
-
 import initial_conditions
+from constants import Altaira, Sun
 
 with open("BodyDB.pickle", "rb") as file:
     db: dict[int, tuple[tuple[float, float, float, float, float, float]]] = pickle.load(
@@ -89,14 +88,16 @@ def worker(
 ):
     rng = np.random.default_rng()
     while True:
-        t_range = [10*Sun.year, 70*Sun.year]
-        t_target = int(np.floor(rng.uniform(low=t_range[0], high=t_range[1]))*Sun.day)
-        t_start = rng.uniform(low=0, high = t_target - t_range[0]) # t_start is no nearer than 10 years before target
+        t_range = [10 * Sun.year, 70 * Sun.year]
+        t_target = int(np.floor(rng.uniform(low=t_range[0], high=t_range[1])) * Sun.day)
+        t_start = rng.uniform(
+            low=0, high=t_target - t_range[0]
+        )  # t_start is no nearer than 10 years before target
         planet_id = np.floor(rng.uniform(low=0, high=10))
         entry = db[t_target][int(planet_id)]
         state_start = initial_conditions.from_target(
             target=np.array([float(t_target), entry[0], entry[1], entry[2]]),
-            initial_t = t_start,
+            initial_t=t_start,
         )
 
         task = Message(
@@ -124,7 +125,7 @@ def worker(
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    workers = os.cpu_count()
+    workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
     out_queue = multiprocessing.Queue()
     proclist: list[multiprocessing.Process] = list()
     for i in range(workers):

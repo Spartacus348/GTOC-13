@@ -1,23 +1,19 @@
 #!/usr/bin/env python
-import numpy as np
+import csv
+import math
+import multiprocessing
+import os
+import os.path
+import pickle
+from typing import Any, NamedTuple
 
-print("Importing libraries. This may take a bit...")
-from astropy import units as u
-from astropy.constants import Constant
-from typing import Any
-from typing import NamedTuple
 import astropy.time
 import boinor.bodies
 import boinor.core.angles
 import boinor.twobody
-import csv
-import math
-import math
-import multiprocessing
-import os.path
-import pickle
-import pprint
-from typing import Any
+import numpy as np
+from astropy import units as u
+from astropy.constants import Constant
 
 print("Done importing!")
 
@@ -141,7 +137,7 @@ if __name__ == "__main__":
     start = 0
     end = 200 * Sun.year * Sun.day
     step = Sun.day
-    workers = 20
+    workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
 
     if not isinstance(workers, int):
         raise ValueError("Number of workers should be an integer")
@@ -162,15 +158,14 @@ if __name__ == "__main__":
             mea = np.deg2rad(float(row["Mean Anomaly at t=0 (deg)"]))
             if ecc > 1:
                 nu = boinor.core.angles.F_to_nu(
-                    boinor.core.angles.M_to_F(mea, ecc),
-                ecc)
+                    boinor.core.angles.M_to_F(mea, ecc), ecc
+                )
             elif ecc < 1:
                 nu = boinor.core.angles.E_to_nu(
-                    boinor.core.angles.M_to_E(mea,ecc),
-                ecc)
+                    boinor.core.angles.M_to_E(mea, ecc), ecc
+                )
             else:
-                nu = boinor.core.angles.D_to_nu(
-                    boinor.core.angles.M_to_D(mea))
+                nu = boinor.core.angles.D_to_nu(boinor.core.angles.M_to_D(mea))
 
             body_classics.append(
                 __Classical(
