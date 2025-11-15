@@ -11,24 +11,27 @@ Current types:
         tries to fire orbits at various planets, if the resulting trajectory is outside the cone of possibility it tries
          again. Stops after some constant number of sent trajectories.
 """
+import random
 from copy import copy
 
 import numpy as np
-
-import runner
-from constants import Altaira, Sun, UnnamedTuple
-from runner import Message
 import boinor.twobody.states
+import boinor.iod.izzo
 from astropy import units as u
 
+import runner
+from runner import Message
 import constants
-from bodyDB import BODY_DB
+from constants import Altaira, Sun, C7
 
+from bodyDB import BODY_DB
 
 PROP_MAX_YR = 70 #years
 MIN_SUN_SKIM_AU = 0.05 #au
 CART_RANGE = 100 #km
 N_SENDS: int = 9 * 10 # sent orbits
+
+rand = np.random.default_rng()
 
 def planet_reachable(orbit, planet) -> bool:
     sat_r = np.array(orbit.r.to_value(u.km))
@@ -36,10 +39,10 @@ def planet_reachable(orbit, planet) -> bool:
 
     return np.linalg.norm(sat_r - planet_r) > CART_RANGE
 
-
-def state_to_tuple(time: int, state) -> constants.UnnamedTuple:
-    return time, state[0], state[1], state[2], state[3], state[4], state[5]
-
+def state_to_c7(time, state) -> C7:
+    return C7(
+        time, state[0], state[1], state[2], state[3], state[4], state[5]
+    )
 
 def c7_to_orbit(state: constants.C7) -> boinor.twobody.Orbit:
     return boinor.twobody.Orbit.from_vectors(
@@ -49,7 +52,6 @@ def c7_to_orbit(state: constants.C7) -> boinor.twobody.Orbit:
         epoch = state.t,
     )
 
-
 def search_and_collide(task: Message) -> Message:
     """
     Propagates an orbit forward until it runs within a certain radius of any planet. Then it generates a new message
@@ -58,8 +60,8 @@ def search_and_collide(task: Message) -> Message:
     :return: Message containing the intersection state at the next planet
     """
     # iterate through the states at the t_step
-    state = task.next.pop()
-    orbit = c7_to_orbit(constants.name_tuple(state))
+    state = task.next.pop()[0]
+    orbit = c7_to_orbit(state)
     home_planet_id = None
     this_orbit = copy(orbit)
     for time, planets in BODY_DB.items():
@@ -87,9 +89,9 @@ def search_and_collide(task: Message) -> Message:
                 continue
             if planet_reachable(this_orbit, planet):
                 return Message(
-                    past = task.past + [state_to_tuple(time, state)],
-                    txt  = str(time),
-                    next = [state_to_tuple(time, planet)],
+                    past = task.past + [(state_to_c7(time, state), p_id)],
+                    txt  = str(p_id),
+                    next = [(state_to_c7(time, planet), p_id)],
                     func = search_and_launch
                 )
 
@@ -98,15 +100,41 @@ def search_and_collide(task: Message) -> Message:
     x, y, z = this_orbit.r
     u, v, w = this_orbit.v
     return Message(
-        past = task.past + [state_to_tuple(-1, state)],
+        past = task.past + [(state_to_c7(Sun.end_sim_time, state),None)],
         txt = str(time),
-        next = [(time, x, y, z, u, v, w)],
+        next = [(state_to_c7(time, (x, y, z, u, v, w)),None)],
         func = end_of_run
     )
 
-
 def search_and_launch(task: Message) -> Message:
+    """
+    Produces N_SENDS tasks targeting other planets.
+    Targets planets and timesteps, finds the trajectory to meet them, then tests if the trajectory is reachable
+        through gravity assist. If it is, it adds the trajectory. If not, it drops it.
+    :param task: Message containing the approach vector and affecting planet
+    :return: Message containing the exit vector and source planet
+    """
+    #
+    state, home_id = task.next.pop()
+    orbit = c7_to_orbit(state)
+
+    planet_options = list(range(len(BODY_DB[orbit.epoch])))
+    planet_options.remove(home_id)
+    time_options = [key for key in BODY_DB.keys() if orbit.epoch < key < orbit.epoch + 70 * Sun.day * Sun.year]
+    future_tasks = []
+    while len(future_tasks) < N_SENDS:
+        planet = random.choice(planet_options)
+        time = random.choice(time_options)
+        v0, _ = boinor.iod.izzo.lambert(
+            k= Sun.gravity,
+            r0 = orbit.r,
+            r = planet[0:3] << u.km,
+            tof= (time-orbit.epoch) << u.s,
+        )
+        
+
     pass
+
 
 def end_of_run(task: Message) -> Message:
     pass
