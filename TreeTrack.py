@@ -10,8 +10,6 @@ from typing import NamedTuple, Self
 
 from astropy import units as u
 from boinor.twobody import Orbit
-from numba.core.ir import UNARY_BUITINS_TO_OPERATORS
-from numba.cuda.cudadrv.driver import MemoryInfo
 
 from constants import C7, Altaira, UnnamedTuple
 
