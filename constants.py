@@ -11,6 +11,7 @@ class Sun:
     au = 149597870.691  # km
     day = 86400  # s
     year = 365.25  # days
+    end_sim_time = 200*day*year
 
 
 Altaira = Body(
