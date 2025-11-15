@@ -33,6 +33,7 @@ PROP_MAX_YR = 70 #years
 MIN_SUN_SKIM_AU = 0.05 #au
 CART_RANGE = 100 #km
 N_SENDS: int = 9 * 10 # sent orbits
+FLYBY_TOL = 1e-7 # 0.1 mm/s in km/s
 
 rand = np.random.default_rng()
 
@@ -121,6 +122,11 @@ def search_and_launch(task: Message) -> Message:
     state, home_id = task.next.pop()
     orbit = c7_to_orbit(state)
 
+    home_planet_state = state_to_c7(orbit.epoch, BODY_DB[orbit.epoch][home_id])
+    home_planet_v = np.array([home_planet_state.u, home_planet_state.v, home_planet_state.w])
+    approach_rel_vel = np.array(orbit.v.to_value(u.km/u.s)) - home_planet_v
+    approach_speed = np.linalg.norm(approach_rel_vel)
+
     planet_options = list(range(len(BODY_DB[orbit.epoch])))
     planet_options.remove(home_id)
     time_options = [key for key in BODY_DB.keys() if orbit.epoch < key < orbit.epoch + 70 * Sun.day * Sun.year]
@@ -134,7 +140,11 @@ def search_and_launch(task: Message) -> Message:
             r = planet[0:3] << u.km,
             tof= (time-orbit.epoch) << u.s,
         )
-        
+        exit_rel_vel = np.array(v0.to_value(u.km/u.s)) - home_planet_v
+        # determine if this exit rel vel is achievable given the approach vel and radius range
+        # first filter: determine if the two velocity vectors are the same magnitude
+        if np.abs(np.linalg.norm(exit_rel_vel) - approach_speed) > FLYBY_TOL:
+            continue
 
     pass
 
