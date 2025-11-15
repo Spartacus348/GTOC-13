@@ -31,8 +31,7 @@ with open(
 
 
 def effect(msg: runner.Message):
-    print("t,x,y,z,u,v,w")
-    if msg.txt != "":
+    if msg.txt != "" or msg.txt != "ERR":
         past = msg.past[0]
         print(msg, file=stderr)
         print(
@@ -46,7 +45,7 @@ def job(message: runner.Message):
     r = [current[1], current[2], current[3]] << u.km
     v = [current[4], current[5], current[6]] << u.km / u.s
     t = current[0] << u.s
-
+    txt = ""
     orb = Orbit.from_vectors(Altaira, r, v, epoch=t)
     intersect = False
     for t in range(0, int(70 * Sun.year * Sun.day), Sun.day):
@@ -61,10 +60,14 @@ def job(message: runner.Message):
                 break
         if intersect:
             break
-        orb = orb.propagate(Sun.day << u.s)
+        try:
+            orb = orb.propagate(Sun.day << u.s)
+        except AssertionError:
+            txt = "ERR"
+            break
         r, v = orb.rv()
 
-    txt = "INTERSECT" if intersect else ""
+    txt = "INTERSECT" if intersect else txt
     message.past.append(current)
     return runner.Message(
         past=message.past,
@@ -115,4 +118,5 @@ if __name__ == "__main__":
     workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
     for i in range(workers):
         in_queue.put(get_job())
+    print("t,x,y,z,u,v,w")
     runner.runner(in_queue, out_queue)
