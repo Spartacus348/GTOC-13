@@ -5,5 +5,5 @@ Type=exec
 User=fborries
 Group=fborries
 WorkingDirectory=/home/fborries/GTOC-13
-ExecStart=/usr/bin/sh -c ".venv/bin/python ./gen_bodyDB.py"
+ExecStartPre=/usr/bin/sh -c ".venv/bin/python ./gen_bodyDB.py"
 ExecStart=/usr/bin/sh -c ".venv/bin/python ./Stage1.py | tee out"
