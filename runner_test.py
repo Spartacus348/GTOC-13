@@ -2,17 +2,17 @@
 import multiprocessing
 import pprint
 
-import TreeTrack
+import runner
 
 
-def job(msg: TreeTrack.Message) -> TreeTrack.Message:
+def job(msg: runner.Message) -> runner.Message:
     pprint.pp(msg)
     if msg.txt == "Job Run":
         print("Second round")
-        return TreeTrack.end_runner()
+        return runner.end_runner()
     else:
         print("First round")
-        return TreeTrack.Message(
+        return runner.Message(
             past=list(), txt="Job Run", next=list(((0, 0, 0, 0, 0, 0, 0),)), func=job
         )
 
@@ -22,8 +22,8 @@ if __name__ == "__main__":
     in_queue = multiprocessing.JoinableQueue()
     out_queue = multiprocessing.Queue()
     in_queue.put(
-        TreeTrack.Message(
+        runner.Message(
             past=list(), txt="Job Run", next=list(((0, 0, 0, 0, 0, 0, 0),)), func=job
         )
     )
-    TreeTrack.runner(in_queue, out_queue)
+    runner.runner(in_queue, out_queue)
