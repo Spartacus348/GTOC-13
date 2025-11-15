@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import numpy as np
+
 print("Importing libraries. This may take a bit...")
 from astropy import units as u
 from astropy.constants import Constant
@@ -156,14 +158,21 @@ if __name__ == "__main__":
     with open(file, newline="", encoding="iso-8859-1") as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
+            ecc = float(row["Eccentricity (deg)"])
+            mea = np.deg_to_rad(float(row["Mean Anomaly at t=0 (deg)"]))
+            if ecc > 1:
+                nu = boinor.core.angles.F_to_nu(
+                    boinor.core.angles.M_to_F(mea, ecc))
+            elif ecc < 1:
+                nu = boinor.core.angles.E_to_nu(
+                    boinor.core.angles.M_to_E(mea,ecc))
+            else:
+                nu = boinor.core.angles.D_to_nu(
+                    boinor.core.angles.M_to_D(mea))
+
             body_classics.append(
                 __Classical(
-                    nu=boinor.core.angles.D_to_nu(
-                        boinor.core.angles.M_to_D(
-                            float(row["Mean Anomaly at t=0 (deg)"]) * (math.pi / 360)
-                        )
-                    )
-                    * (180 / math.pi),
+                    nu=np.deg_to_rad(nu),
                     a=float(row["Semi-Major Axis (km)"]),
                     ecc=float(row["Eccentricity ()"]),
                     inc=float(row["Inclination (deg)"]),
