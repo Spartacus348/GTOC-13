@@ -15,6 +15,8 @@ from boinor.twobody import Orbit
 
 from constants import Altaira, Sun
 
+import initial_conditions
+
 with open("BodyDB.pickle", "rb") as file:
     db: dict[int, tuple[tuple[float, float, float, float, float, float]]] = pickle.load(
         file
@@ -87,17 +89,27 @@ def worker(
 ):
     rng = np.random.default_rng()
     while True:
+        t_range = [10*Sun.year, 70*Sun.year]
+        t_target = int(np.floor(rng.uniform(low=t_range[0], high=t_range[1]))*Sun.day)
+        t_start = rng.uniform(low=0, high = t_target - t_range[0]) # t_start is no nearer than 10 years before target
+        planet_id = np.floor(rng.uniform(low=0, high=10))
+        entry = db[t_target][int(planet_id)]
+        state_start = initial_conditions.from_target(
+            target=np.ndarray([float(t_target), entry[0], entry[1], entry[2]]),
+            initial_t = t_start,
+        )
+
         task = Message(
             past=list(),
             txt="",
             next=list(
                 (
                     C7(
-                        t=0,
-                        x=-200 * Sun.au,
-                        y=rng.uniform(low=-200 * Sun.au, high=200 * Sun.au),
-                        z=rng.uniform(low=-200 * Sun.au, high=200 * Sun.au),
-                        u=rng.uniform(low=1, high=200),
+                        t=state_start[0],
+                        x=state_start[1],
+                        y=state_start[2],
+                        z=state_start[3],
+                        u=state_start[4],
                         v=0,
                         w=0,
                     ),
