@@ -1,58 +1,29 @@
 #!/usr/bin/env python
 
 import multiprocessing
-from typing import NamedTuple
-from astropy import units as u
-from boinor.twobody import Orbit
-from astropy.constants import Constant
-import boinor.bodies
+import os
 import pprint
 import time
-import os
+from collections.abc import Callable
+from multiprocessing.queues import JoinableQueue, Queue
+from typing import NamedTuple, Self
 
-from constants import C7
+from astropy import units as u
+from boinor.twobody import Orbit
+from numba.core.ir import UNARY_BUITINS_TO_OPERATORS
+from numba.cuda.cudadrv.driver import MemoryInfo
+
+from constants import C7, Altaira, UnnamedTuple
 
 
 class Message(NamedTuple):
-    past: list[C7]
+    past: list[UnnamedTuple]
     txt: str
-    next: list[C7]
+    next: list[UnnamedTuple]
+    func: Callable[[Self], Self]
 
 
-Altaira = boinor.bodies.Body(
-    parent=None,
-    k=Constant(
-        abbrev="GM_altaira",  # abbrev
-        name="Altaira centric gravitational constant",  # name
-        value=139348062043.343e9,  # value (given by problem) (python is nice to us :))
-        unit="m3/s2",  # unit
-        uncertainty=0,  # uncertainty
-        reference="",  # reference
-        system="si",  # system
-    ),
-    name="Altaira",
-    R=Constant(
-        "R_altaira",
-        "Altaira equatorial radius",
-        6.95700e8,  # Given
-        "m",
-        0,
-        "",
-        system="si",
-    ),
-    mass=Constant(
-        "M_altaira",
-        "Solar mass",
-        139348062043.343e9 * 6.67430e-11,  # GM (Given) * Gravitational constant
-        "kg",
-        "0",
-        "",
-        system="si",
-    ),
-)
-
-
-def job(message: Message):
+def fake_job(message: Message):
     current = message.next.pop()
     r = [current[1], current[2], current[3]] << u.km
     v = [current[4], current[5], current[6]] << u.km / u.s
@@ -98,8 +69,8 @@ def job(message: Message):
 
 
 def worker(
-    in_queue,
-    out_queue,
+    in_queue: JoinableQueue[Message],
+    out_queue: Queue[Message],
 ):
     while True:
         task: Message = in_queue.get()
@@ -107,7 +78,7 @@ def worker(
             "Ending worker"
             return None
         try:
-            out_queue.put(job(task), True, 10)
+            out_queue.put(task.func(task), True, 10)
         except ValueError:
             print("Queue full or message too big!")
         in_queue.task_done()
@@ -135,6 +106,7 @@ if __name__ == "__main__":
                     -0.9681529768116752,
                 )
             ],
+            func=fake_job,
         )
     )
     proclist: list[multiprocessing.Process] = list()
@@ -160,12 +132,14 @@ if __name__ == "__main__":
             # pass the new jobs from the message into the in_queue.
             msg = out_queue.get()
             for i in msg.next:
-                in_queue.put(Message(msg.past, "", list((i,))))
+                in_queue.put(
+                    Message(past=msg.past, txt=msg.txt, next=list((i,)), func=msg.func)
+                )
             if msg.txt == "END":
                 pprint.pp(msg)
                 break
     # This politely stops the workers.
     for i in range(workers):
-        in_queue.put(Message(past=list(), txt="END", next=list()))
+        in_queue.put(Message(past=list(), txt="END", next=list(), func=lambda x: x))
     for i in proclist:
         i.join()
