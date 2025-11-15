@@ -150,7 +150,8 @@ def search_and_launch(task: Message) -> Message:
 
 
 def end_of_run(task: Message) -> Message:
-    pass
+    print(json.dumps(task.past))
+    return empty_message()
 
 
 if __name__ == "__main__":

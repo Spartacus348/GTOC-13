@@ -57,6 +57,7 @@ def worker(
         in_queue.task_done()
 
 
+# TODO: Add iterator func.
 def runner(in_queue: JoinableQueue[Message], out_queue: Queue[Message]) -> None:
     workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
     proclist: list[multiprocessing.Process] = list()
