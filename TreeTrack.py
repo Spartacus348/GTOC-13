@@ -6,6 +6,7 @@ import pprint
 import time
 from collections.abc import Callable
 from multiprocessing.queues import JoinableQueue, Queue
+from sys import stderr
 from typing import NamedTuple, Self
 
 from astropy import units as u
@@ -19,6 +20,15 @@ class Message(NamedTuple):
     txt: str
     next: list[UnnamedTuple]
     func: Callable[[Self], Self]
+
+
+def __noop(Message) -> Message:
+    raise Exception("THIS FUNCTION SHOULD NOT BE CALLED.")
+    return Message(past=list(), txt="END", next=list(), func=__noop)
+
+
+def end_runner() -> Message:
+    return Message(past=list(), txt="END", next=list(), func=__noop)
 
 
 def fake_job(message: Message):
@@ -78,13 +88,50 @@ def worker(
         try:
             out_queue.put(task.func(task), True, 10)
         except ValueError:
-            print("Queue full or message too big!")
+            print("Queue full or message too big!", file=stderr)
         in_queue.task_done()
+
+
+def runner(in_queue: JoinableQueue[Message], out_queue: Queue[Message]) -> None:
+    workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
+    proclist: list[multiprocessing.Process] = list()
+    for i in range(workers):
+        proclist.append(
+            multiprocessing.Process(target=worker, args=(in_queue, out_queue))
+        )
+        proclist[-1].start()
+    inc = 0
+    while True:
+        in_queue.join()
+        print(f"Loop {inc}", file=stderr)
+        inc += 1
+        time.sleep(0.01)  # Sleep to accomodate IPC weirdness.
+        in_queue.join()
+        if out_queue.empty():
+            print("Out queue empty. Quiting.", file=stderr)
+            break
+        while not out_queue.empty():
+            ### Message handling should accomodate whatever we're
+            ### searching for and the result we want back.
+            # In this dummy code we don't record results and just
+            # pass the new jobs from the message into the in_queue.
+            msg = out_queue.get()
+            for i in msg.next:
+                in_queue.put(
+                    Message(past=msg.past, txt=msg.txt, next=list((i,)), func=msg.func)
+                )
+            if msg.txt == "END":
+                pprint.pp(msg)
+                break
+    # This politely stops the workers.
+    for i in range(workers):
+        in_queue.put(end_runner())
+    for i in proclist:
+        i.join()
 
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    workers = os.cpu_count()
     in_queue = multiprocessing.JoinableQueue()
     out_queue = multiprocessing.Queue()
     ### Initial seed. This should be changed.
@@ -107,37 +154,4 @@ if __name__ == "__main__":
             func=fake_job,
         )
     )
-    proclist: list[multiprocessing.Process] = list()
-    for i in range(workers):
-        proclist.append(
-            multiprocessing.Process(target=worker, args=(in_queue, out_queue))
-        )
-        proclist[-1].start()
-    inc = 0
-    while True:
-        in_queue.join()
-        print(f"Loop {inc}")
-        inc += 1
-        time.sleep(0.01)  # Sleep to accomodate IPC weirdness.
-        in_queue.join()
-        if out_queue.empty():
-            print("Out queue empty. Quiting.")
-            break
-        while not out_queue.empty():
-            ### Message handling should accomodate whatever we're
-            ### searching for and the result we want back.
-            # In this dummy code we don't record results and just
-            # pass the new jobs from the message into the in_queue.
-            msg = out_queue.get()
-            for i in msg.next:
-                in_queue.put(
-                    Message(past=msg.past, txt=msg.txt, next=list((i,)), func=msg.func)
-                )
-            if msg.txt == "END":
-                pprint.pp(msg)
-                break
-    # This politely stops the workers.
-    for i in range(workers):
-        in_queue.put(Message(past=list(), txt="END", next=list(), func=lambda x: x))
-    for i in proclist:
-        i.join()
+    runner(in_queue=in_queue, out_queue=out_queue)
