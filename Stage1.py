@@ -1,27 +1,19 @@
 #!/usr/bin/env python
 
-from astropy import units as u
-from astropy.constants import Constant
-from boinor.twobody import Orbit
-from typing import NamedTuple
-import boinor.bodies
 import csv
 import math
 import multiprocessing
-import numpy as np
 import os
 import os.path
 import pickle
-import pprint
 from sys import stderr
+from typing import NamedTuple
 
+import numpy as np
+from astropy import units as u
+from boinor.twobody import Orbit
 
-class Sun:
-    gravity = 139348062043.343  # km3/s2
-    au = 149597870.691  # km
-    day = 86400  # s
-    year = 365.25  # days
-
+from constants import Altaira, Sun
 
 with open("BodyDB.pickle", "rb") as file:
     db: dict[int, tuple[tuple[float, float, float, float, float, float]]] = pickle.load(
@@ -54,39 +46,6 @@ class Message(NamedTuple):
     past: list[C7]
     txt: str
     next: list[C7]
-
-
-Altaira = boinor.bodies.Body(
-    parent=None,
-    k=Constant(
-        abbrev="GM_altaira",  # abbrev
-        name="Altaira centric gravitational constant",  # name
-        value=139348062043.343e9,  # value (given by problem) (python is nice to us :))
-        unit="m3/s2",  # unit
-        uncertainty=0,  # uncertainty
-        reference="",  # reference
-        system="si",  # system
-    ),
-    name="Altaira",
-    R=Constant(
-        "R_altaira",
-        "Altaira equatorial radius",
-        6.95700e8,  # Given
-        "m",
-        0,
-        "",
-        system="si",
-    ),
-    mass=Constant(
-        "M_altaira",
-        "Solar mass",
-        139348062043.343e9 * 6.67430e-11,  # GM (Given) * Gravitational constant
-        "kg",
-        "0",
-        "",
-        system="si",
-    ),
-)
 
 
 def job(message: Message):
@@ -135,9 +94,9 @@ def worker(
                 (
                     C7(
                         t=0,
-                        x=0,
-                        y=rng.uniform(low=-200 * 149597870.7, high=200 * 149597870.7),
-                        z=rng.uniform(low=-200 * 149597870.7, high=200 * 149597870.7),
+                        x=-200 * Sun.au,
+                        y=rng.uniform(low=-200 * Sun.au, high=200 * Sun.au),
+                        z=rng.uniform(low=-200 * Sun.au, high=200 * Sun.au),
                         u=rng.uniform(low=1, high=200),
                         v=0,
                         w=0,
