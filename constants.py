@@ -1,5 +1,6 @@
 #!/usr/bin/python
 ## holds the constant parameters for the Sun
+from math import _SupportsFloatOrIndex
 
 from astropy.constants import Constant
 from boinor.bodies import Body
@@ -46,3 +47,6 @@ Altaira = Body(
 
 if __name__ == "__main__":
     print("This module is not meant to be run.")
+
+
+def acos(x: _SupportsFloatOrIndex, /) -> float: ...

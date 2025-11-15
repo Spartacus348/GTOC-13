@@ -13,14 +13,29 @@ import os
 
 
 class C7(NamedTuple):
-    t: float = math.nan
-    x: float = math.nan
-    y: float = math.nan
-    z: float = math.nan
-    u: float = math.nan
-    v: float = math.nan
-    w: float = math.nan
+    t: int
+    x: float
+    y: float
+    z: float
+    u: float
+    v: float
+    w: float
 
+type UnnamedTuple = tuple[int, float, float, float, float, float, float]
+
+def unname_tuple(state: C7) -> UnnamedTuple:
+    return state.t, state.x, state.y, state.z, state.u, state.v, state.w
+
+def name_tuple(state: UnnamedTuple) -> C7:
+    return C7(
+        t=state[0],
+        x=state[1],
+        y=state[2],
+        z=state[3],
+        u=state[4],
+        v=state[5],
+        w=state[6],
+    )
 
 class Message(NamedTuple):
     past: list[C7]
