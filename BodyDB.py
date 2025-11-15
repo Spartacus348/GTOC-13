@@ -158,7 +158,7 @@ if __name__ == "__main__":
     with open(file, newline="", encoding="iso-8859-1") as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            ecc = float(row["Eccentricity (deg)"])
+            ecc = float(row["Eccentricity ()"])
             mea = np.deg_to_rad(float(row["Mean Anomaly at t=0 (deg)"]))
             if ecc > 1:
                 nu = boinor.core.angles.F_to_nu(
