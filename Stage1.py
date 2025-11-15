@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import csv
-import math
 import multiprocessing
 import os
 import os.path
@@ -14,7 +13,7 @@ from astropy import units as u
 from boinor.twobody import Orbit
 
 import initial_conditions
-from constants import Altaira, Sun
+from constants import C7, Altaira, Sun, UnnamedTuple
 
 with open("BodyDB.pickle", "rb") as file:
     db: dict[int, tuple[tuple[float, float, float, float, float, float]]] = pickle.load(
@@ -33,20 +32,10 @@ with open(
         radiusList.append(float(row["Radius (km)"]))
 
 
-class C7(NamedTuple):
-    t: float = math.nan
-    x: float = math.nan
-    y: float = math.nan
-    z: float = math.nan
-    u: float = math.nan
-    v: float = math.nan
-    w: float = math.nan
-
-
 class Message(NamedTuple):
-    past: list[C7]
+    past: list[UnnamedTuple]
     txt: str
-    next: list[C7]
+    next: list[UnnamedTuple]
 
 
 def job(message: Message):

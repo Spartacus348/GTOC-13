@@ -11,12 +11,15 @@ Current types:
         tries to fire orbits at various planets, if the resulting trajectory is outside the cone of possibility it tries
          again. Stops after some constant number of sent trajectories.
 """
-from TreeTrack import Message
 
-N_SENDS: int = 9*10
+from runner import Message
+
+N_SENDS: int = 9 * 10
+
 
 def search_and_collide(task: Message) -> Message:
     pass
+
 
 def search_and_send(task: Message) -> Message:
     pass
