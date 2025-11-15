@@ -7,18 +7,18 @@ import time
 from collections.abc import Callable
 from multiprocessing.queues import JoinableQueue, Queue
 from sys import stderr
-from typing import NamedTuple, Self
+from typing import Any, NamedTuple, Self
 
 from astropy import units as u
 from boinor.twobody import Orbit
 
-from constants import C7, Altaira, UnnamedTuple
+from constants import C7, Altaira
 
 
 class Message(NamedTuple):
-    past: list[UnnamedTuple]
+    past: list[tuple[C7, Any]]
     txt: str
-    next: list[UnnamedTuple]
+    next: list[tuple[C7, Any]]
     func: Callable[[Self], Self]
 
 

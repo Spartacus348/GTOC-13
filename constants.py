@@ -11,7 +11,7 @@ class Sun:
     au = 149597870.691  # km
     day = 86400  # s
     year = 365.25  # days
-    end_sim_time = 200*day*year
+    end_sim_time = 200 * day * year
 
 
 Altaira = Body(
@@ -46,6 +46,7 @@ Altaira = Body(
     ),
 )
 
+
 class C7(NamedTuple):
     t: int
     x: float
@@ -55,7 +56,6 @@ class C7(NamedTuple):
     v: float
     w: float
 
-type UnnamedTuple = tuple[int, float, float, float, float, float, float]
 
 class Classical(NamedTuple):
     a: float
@@ -66,22 +66,9 @@ class Classical(NamedTuple):
     nu: float
 
 
-def unname_tuple(state: C7) -> UnnamedTuple:
-    return state.t, state.x, state.y, state.z, state.u, state.v, state.w
-
-def name_tuple(state: UnnamedTuple) -> C7:
-    return C7(
-        t=state[0],
-        x=state[1],
-        y=state[2],
-        z=state[3],
-        u=state[4],
-        v=state[5],
-        w=state[6],
-    )
-
 if __name__ == "__main__":
     print("This module is not meant to be run.")
+
 
 class SailParameters:
     r0 = 149597870.691  # km
