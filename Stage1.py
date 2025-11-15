@@ -95,7 +95,7 @@ def worker(
         planet_id = np.floor(rng.uniform(low=0, high=10))
         entry = db[t_target][int(planet_id)]
         state_start = initial_conditions.from_target(
-            target=np.ndarray([float(t_target), entry[0], entry[1], entry[2]]),
+            target=np.array([float(t_target), entry[0], entry[1], entry[2]]),
             initial_t = t_start,
         )
 
