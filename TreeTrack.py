@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import multiprocessing
-import math
 from typing import NamedTuple
 from astropy import units as u
 from boinor.twobody import Orbit
@@ -11,31 +10,8 @@ import pprint
 import time
 import os
 
+from constants import C7
 
-class C7(NamedTuple):
-    t: int
-    x: float
-    y: float
-    z: float
-    u: float
-    v: float
-    w: float
-
-type UnnamedTuple = tuple[int, float, float, float, float, float, float]
-
-def unname_tuple(state: C7) -> UnnamedTuple:
-    return state.t, state.x, state.y, state.z, state.u, state.v, state.w
-
-def name_tuple(state: UnnamedTuple) -> C7:
-    return C7(
-        t=state[0],
-        x=state[1],
-        y=state[2],
-        z=state[3],
-        u=state[4],
-        v=state[5],
-        w=state[6],
-    )
 
 class Message(NamedTuple):
     past: list[C7]

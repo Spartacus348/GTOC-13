@@ -2,10 +2,9 @@
 import csv
 import math
 import multiprocessing
-import os
 import os.path
 import pickle
-from typing import Any, NamedTuple
+from typing import Any
 
 import astropy.time
 import boinor.bodies
@@ -15,50 +14,9 @@ import numpy as np
 from astropy import units as u
 from astropy.constants import Constant
 
+from constants import Classical, Sun
+
 print("Done importing!")
-
-
-class Sun:
-    gravity = 139348062043.343  # km3/s2
-    au = 149597870.691  # km
-    day = 86400  # s
-    year = 365.25  # days
-
-
-class SailParameters:
-    r0 = 149597870.691  # km
-    flux = 5.4026e-6  # N/m2
-    area = 15000  # m2
-    mass = 500  # kg
-
-
-class C7(NamedTuple):
-    t: float = math.nan
-    x: float = math.nan
-    y: float = math.nan
-    z: float = math.nan
-    u: float = math.nan
-    v: float = math.nan
-    w: float = math.nan
-
-
-class __C6(NamedTuple):
-    x: float = math.nan
-    y: float = math.nan
-    z: float = math.nan
-    u: float = math.nan
-    v: float = math.nan
-    w: float = math.nan
-
-
-class __Classical(NamedTuple):
-    a: float
-    ecc: float
-    inc: float
-    raan: float
-    argp: float
-    nu: float
-
 
 def procjob(inputs) -> None:
     Altaira = boinor.bodies.Body(
@@ -168,7 +126,7 @@ if __name__ == "__main__":
                 nu = boinor.core.angles.D_to_nu(boinor.core.angles.M_to_D(mea))
 
             body_classics.append(
-                __Classical(
+                Classical(
                     nu=np.rad2deg(nu),
                     a=float(row["Semi-Major Axis (km)"]),
                     ecc=float(row["Eccentricity ()"]),
@@ -177,7 +135,7 @@ if __name__ == "__main__":
                     argp=float(row["Argument of Periapsis (deg)"]),
                 )
             )
-    body_classics: tuple[__Classical, ...] = tuple(body_classics)
+    body_classics: tuple[Classical, ...] = tuple(body_classics)
 
     queue = multiprocessing.SimpleQueue()
     worker_jobs = [(0, 0, 0, body_classics, queue)] * workers

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 ## holds the constant parameters for the Sun
-from math import _SupportsFloatOrIndex
+from typing import NamedTuple
 
 from astropy.constants import Constant
 from boinor.bodies import Body
@@ -45,8 +45,45 @@ Altaira = Body(
     ),
 )
 
+class C7(NamedTuple):
+    t: int
+    x: float
+    y: float
+    z: float
+    u: float
+    v: float
+    w: float
+
+type UnnamedTuple = tuple[int, float, float, float, float, float, float]
+
+class Classical(NamedTuple):
+    a: float
+    ecc: float
+    inc: float
+    raan: float
+    argp: float
+    nu: float
+
+
+def unname_tuple(state: C7) -> UnnamedTuple:
+    return state.t, state.x, state.y, state.z, state.u, state.v, state.w
+
+def name_tuple(state: UnnamedTuple) -> C7:
+    return C7(
+        t=state[0],
+        x=state[1],
+        y=state[2],
+        z=state[3],
+        u=state[4],
+        v=state[5],
+        w=state[6],
+    )
+
 if __name__ == "__main__":
     print("This module is not meant to be run.")
 
-
-def acos(x: _SupportsFloatOrIndex, /) -> float: ...
+class SailParameters:
+    r0 = 149597870.691  # km
+    flux = 5.4026e-6  # N/m2
+    area = 15000  # m2
+    mass = 500  # kg
