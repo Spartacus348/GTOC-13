@@ -11,20 +11,23 @@ Current types:
         tries to fire orbits at various planets, if the resulting trajectory is outside the cone of possibility it tries
          again. Stops after some constant number of sent trajectories.
 """
+
+import multiprocessing
+import os
 import random
 from copy import copy
 
-import numpy as np
-import boinor.twobody.states
 import boinor.iod.izzo
+import boinor.twobody.states
+import numpy as np
 from astropy import units as u
 
-import runner
-from runner import Message
 import constants
-from constants import Altaira, Sun, C7
-
+import runner
 from bodyDB import BODY_DB
+from constants import C7, Altaira, Sun
+from runner import Message
+from Stage1 import get_job
 
 PROP_MAX_YR = 70 #years
 MIN_SUN_SKIM_AU = 0.05 #au
@@ -138,3 +141,14 @@ def search_and_launch(task: Message) -> Message:
 
 def end_of_run(task: Message) -> Message:
     pass
+
+
+if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    in_queue = multiprocessing.JoinableQueue()
+    out_queue = multiprocessing.Queue()
+    workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
+    for i in range(workers):
+        in_queue.put(get_job(search_and_collide))
+    print("t,x,y,z,u,v,w,planetID")
+    runner.runner(in_queue, out_queue)

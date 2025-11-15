@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import os.path
 import pickle
+from collections.abc import Callable
 from sys import stderr
 
 import numpy as np
@@ -39,7 +40,7 @@ def effect(msg: runner.Message):
         print(
             f"{float(past[0])},{float(past[1])},{float(past[2])},{float(past[3])},{float(past[4])},{float(past[5])},{float(past[6])},{int(msg.past[0][1])}"
         )
-    return get_job()
+    return get_job(job)
 
 
 def job(message: runner.Message):
@@ -79,7 +80,7 @@ def job(message: runner.Message):
     )
 
 
-def get_job() -> runner.Message:
+def get_job(job: Callable[[runner.Message], runner.Message]) -> runner.Message:
     rng = np.random.default_rng()
     t_range = [10 * Sun.year, 70 * Sun.year]
     t_target = int(np.floor(rng.uniform(low=t_range[0], high=t_range[1])) * Sun.day)
@@ -120,6 +121,6 @@ if __name__ == "__main__":
     out_queue = multiprocessing.Queue()
     workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
     for i in range(workers):
-        in_queue.put(get_job())
+        in_queue.put(get_job(job))
     print("t,x,y,z,u,v,w,planetID")
     runner.runner(in_queue, out_queue)
