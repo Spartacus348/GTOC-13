@@ -1,0 +1,12 @@
+servers:
+  hosts:
+    gtoc:
+      ansible_host: 192.168.50.96
+    atx-node084:
+      ansible_host: 172.29.236.2
+    atx-node092:
+      ansible_host: 172.29.236.3
+    atx-node105:
+      ansible_host: 172.29.236.4
+    atx-node120:
+      ansible_host: 172.29.236.5

@@ -1,0 +1,69 @@
+---
+- name: Prepare server
+  hosts: servers
+  become: true
+  module_defaults:
+    ansible.builtin.dnf:
+      disable_gpg_check: true
+  tasks:
+    - name: Install dnf config-manager
+      ansible.builtin.dnf:
+        name: dnf-plugins-core
+        state: latest
+    - name: Enable CRB
+      community.general.dnf_config_manager:
+        name: crb
+        state: enabled
+    - name: Enable EPEL
+      ansible.builtin.dnf:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+        state: latest
+    - name: Upgrade all packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+    - name: Install the latest version of python3.13
+      ansible.builtin.dnf:
+        name:
+          - python3.13
+          - python3.13-packaging
+          - python3.13-pip
+        state: latest
+    - name: Install the latest version of Git
+      ansible.builtin.dnf:
+        name: git
+        state: latest
+
+- name: Prepare job
+  hosts: servers
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.13
+  tasks:
+    - name: Git checkout
+      ansible.builtin.git:
+        repo: "https://github.com/Spartacus348/GTOC-13.git"
+        dest: /home/fborries/GTOC-13
+        force: true
+    - name: Install specified python requirements
+      ansible.builtin.pip:
+        requirements: /home/fborries/GTOC-13/requirements.txt
+        state: latest
+        virtualenv: /home/fborries/GTOC-13/.venv
+        virtualenv_command: "{{ ansible_python_interpreter }} -m venv"
+    - name: Create systemd service
+      become: true
+      ansible.builtin.copy:
+        src: /home/fborries/GTOC-13/ansible/gtoc.service
+        dest: /etc/systemd/system
+        remote_src: yes
+- name: Run job
+  hosts: servers
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.13
+  tasks:
+    - name: Systemd daemon-reload + (re)start gtoc.service
+      ansible.builtin.systemd_service:
+        state: restarted
+        daemon_reload: true
+        name: gtoc.service

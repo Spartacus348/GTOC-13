@@ -1,0 +1,10 @@
+- name: Get results
+  hosts: servers
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.13
+  tasks:
+    - name: Fetch from servers
+      ansible.builtin.fetch:
+        src: /home/fborries/GTOC-13/out
+        dest: out-{{ inventory_hostname }}
+        flat: yes
