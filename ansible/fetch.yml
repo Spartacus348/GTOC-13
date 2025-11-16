@@ -8,3 +8,9 @@
         src: /home/fborries/GTOC-13/out
         dest: out-{{ inventory_hostname }}
         flat: yes
+- name: Merge results
+  hosts: localhost
+  tasks:
+    - name: Merge CSVs
+      ansible.builtin.shell:
+        cmd: cat {{playbook_dir}}/out-* | sort | uniq > {{playbook_dir}}/combined-out
