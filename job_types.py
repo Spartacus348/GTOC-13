@@ -12,6 +12,7 @@ Current types:
          again. Stops after some constant number of sent trajectories.
 """
 
+import json
 import multiprocessing
 import os
 import random
@@ -151,7 +152,7 @@ def search_and_launch(task: Message) -> Message:
 
 def end_of_run(task: Message) -> Message:
     print(json.dumps(task.past))
-    return empty_message()
+    return runner.empty_message()
 
 
 if __name__ == "__main__":
