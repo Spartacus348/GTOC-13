@@ -2,9 +2,8 @@
 
 import multiprocessing
 import os
-import time
 from collections.abc import Callable
-from multiprocessing.queues import JoinableQueue, Queue
+from multiprocessing.queues import Queue, SimpleQueue
 from sys import stderr
 from typing import Any, NamedTuple, Self
 
@@ -42,23 +41,22 @@ def end_runner() -> Message:
 
 
 def worker(
-    in_queue: JoinableQueue[Message],
+    in_queue: SimpleQueue[Message],
     out_queue: Queue[Message],
-):
+) -> None:
     while True:
         task: Message = in_queue.get()
         if task.txt == "END":
-            "Ending worker"
-            return None
+            break
         try:
             out_queue.put(task.func(task), True, 10)
         except ValueError:
             print("Queue full or message too big!", file=stderr)
-        in_queue.task_done()
+    return None
 
 
 # TODO: Add iterator func.
-def runner(in_queue: JoinableQueue[Message], out_queue: Queue[Message]) -> None:
+def runner(in_queue: SimpleQueue[Message], out_queue: Queue[Message]) -> None:
     workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
     proclist: list[multiprocessing.Process] = list()
     for i in range(workers):
@@ -66,28 +64,15 @@ def runner(in_queue: JoinableQueue[Message], out_queue: Queue[Message]) -> None:
             multiprocessing.Process(target=worker, args=(in_queue, out_queue))
         )
         proclist[-1].start()
-    inc = 0
+    jobs = 0
     while True:
-        in_queue.join()
-        print(f"Loop {inc}", file=stderr)
-        inc += 1
-        time.sleep(0.01)  # Sleep to accomodate IPC weirdness.
-        in_queue.join()
-        if out_queue.empty():
-            print("Out queue empty. Quiting.", file=stderr)
+        print(f"Completed jobs {jobs}", file=stderr)
+        msg = out_queue.get()
+        for i in msg.next:
+            in_queue.put(Message(past=msg.past, txt=msg.txt, next=[i], func=msg.func))
+        if msg.txt == "END":
             break
-        while not out_queue.empty():
-            ### Message handling should accomodate whatever we're
-            ### searching for and the result we want back.
-            # In this dummy code we don't record results and just
-            # pass the new jobs from the message into the in_queue.
-            msg = out_queue.get()
-            for i in msg.next:
-                in_queue.put(
-                    Message(past=msg.past, txt=msg.txt, next=[i], func=msg.func)
-                )
-            if msg.txt == "END":
-                break
+        jobs += 1
     # This politely stops the workers.
     for i in range(workers):
         in_queue.put(end_runner())

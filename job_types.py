@@ -156,7 +156,7 @@ def end_of_run(task: Message) -> Message:
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    in_queue = multiprocessing.JoinableQueue()
+    in_queue = multiprocessing.SimpleQueue()
     out_queue = multiprocessing.Queue()
     workers = os.cpu_count() - 1 if os.cpu_count() is not None else 4
     for i in range(workers):
